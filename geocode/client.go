@@ -137,7 +137,7 @@ func (c *Client) HCode(v string) *Client {
 		return c
 	}
 	b := url.Values{}
-	c.data.Set(filter, fmt.Sprintf("%s@%s", hCode, v))
+	b.Set(filter, fmt.Sprintf("%s@%s", hCode, v))
 	return c.copy(b)
 }
 
@@ -161,7 +161,7 @@ func (c *Client) BCode(v string) *Client {
 		return c
 	}
 	b := url.Values{}
-	c.data.Set(filter, fmt.Sprintf("%s@%s", bCode, v))
+	b.Set(filter, fmt.Sprintf("%s@%s", bCode, v))
 	return c.copy(b)
 }
 
