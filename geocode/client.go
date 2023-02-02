@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	ClientIDHeaderKey     = "X-NCP-APIGW-API-KEY-ID"
-	ClientSecretHeaderKey = "X-NCP-APIGW-API-KEY"
+	clientIDHeaderKey     = "X-NCP-APIGW-API-KEY-ID"
+	clientSecretHeaderKey = "X-NCP-APIGW-API-KEY"
 
 	OpenAPIBaseURL = "https://naveropenapi.apigw.ntruss.com"
 	Endpoint       = "/map-geocode/v2/geocode"
@@ -31,8 +31,10 @@ const (
 )
 
 const (
-	Kor = Lang("kor") // default
-	Eng = Lang("eng") // optional
+	// LanguageKor korean, default
+	LanguageKor = Lang("kor")
+	// LanguageEng english, optional
+	LanguageEng = Lang("eng") // optional
 )
 
 const (
@@ -52,8 +54,8 @@ var ErrInvalidQuery = errors.New("invalid query parameter")
 type Client struct {
 	HTTPClient   *http.Client
 	BaseURL      *url.URL
-	clientID     *string
-	clientSecret *string
+	clientID     string
+	clientSecret string
 	data         url.Values
 }
 
@@ -68,8 +70,8 @@ func NewClient(
 	}
 	srv := &Client{
 		HTTPClient:   http.DefaultClient,
-		clientID:     &clientID,
-		clientSecret: &clientSecret,
+		clientID:     clientID,
+		clientSecret: clientSecret,
 		BaseURL:      baseURL,
 	}
 
@@ -119,22 +121,21 @@ func (c *Client) Language(v Lang) *Client {
 // you can filter array values through repetitive call.
 // but if previous filter and the current filter are different,
 // the previous filter will be removed.
-//
-// client.HCode("value1").HCode("value2)
-func (c *Client) HCode(v string) *Client {
+func (c *Client) HCode(v ...string) *Client {
 	cc := c.clone()
+	vj := strings.Join(v, ";")
 	if cc.data == nil {
 		cc.data = url.Values{}
-		cc.data.Set(filter, fmt.Sprintf("%s@%s", hCode, v))
+		cc.data.Set(filter, fmt.Sprintf("%s@%s", hCode, vj))
 	} else {
 		f := cc.data.Get(filter)
 		// 필터를 설정한 적이 없으면 설정하고 리턴
 		// 또는 필터를 설정한 적이 있으나 설정하려는 필터와 기존 필터가 다른 경우 기존 필터 제거하고 현재 필터 설정
 		if f == "" || !strings.HasPrefix(f, string(hCode)) {
-			cc.data.Set(filter, fmt.Sprintf("%s@%s", hCode, v))
+			cc.data.Set(filter, fmt.Sprintf("%s@%s", hCode, vj))
 		} else {
 			// 기존 필터에 이어서 설정
-			cc.data.Set(filter, fmt.Sprintf("%s;%s", f, v))
+			cc.data.Set(filter, fmt.Sprintf("%s;%s", f, vj))
 		}
 	}
 	return cc
@@ -144,22 +145,21 @@ func (c *Client) HCode(v string) *Client {
 // you can filter array values through repetitive call.
 // but if previous filter and the current filter are different,
 // the previous filter will be removed.
-//
-// client.BCode("value1").BCode("value2)
-func (c *Client) BCode(v string) *Client {
+func (c *Client) BCode(v ...string) *Client {
 	cc := c.clone()
+	vj := strings.Join(v, ";")
 	if cc.data == nil {
 		cc.data = url.Values{}
-		cc.data.Set(filter, fmt.Sprintf("%s@%s", bCode, v))
+		cc.data.Set(filter, fmt.Sprintf("%s@%s", bCode, vj))
 	} else {
 		f := cc.data.Get(filter)
 		// 필터를 설정한 적이 없으면 설정하고 리턴
 		// 또는 필터를 설정한 적이 있으나 설정하려는 필터와 기존 필터가 다른 경우 기존 필터 제거하고 현재 필터 설정
 		if f == "" || !strings.HasPrefix(f, string(bCode)) {
-			cc.data.Set(filter, fmt.Sprintf("%s@%s", bCode, v))
+			cc.data.Set(filter, fmt.Sprintf("%s@%s", bCode, vj))
 		} else {
 			// 기존 필터에 이어서 설정
-			cc.data.Set(filter, fmt.Sprintf("%s;%s", f, v))
+			cc.data.Set(filter, fmt.Sprintf("%s;%s", f, vj))
 		}
 	}
 	return cc
@@ -189,13 +189,8 @@ func (c *Client) Count(v int) *Client {
 }
 
 func (c *Client) clone() *Client {
-	return &Client{
-		HTTPClient:   c.HTTPClient,
-		clientID:     c.clientID,
-		clientSecret: c.clientSecret,
-		BaseURL:      c.BaseURL,
-		data:         c.data,
-	}
+	cc := *c
+	return &cc
 }
 
 func (c *Client) request(ctx context.Context) (*Response, error) {
@@ -206,8 +201,8 @@ func (c *Client) request(ctx context.Context) (*Response, error) {
 	}
 	req.URL.RawQuery = c.data.Encode()
 
-	req.Header.Add(ClientIDHeaderKey, *c.clientID)
-	req.Header.Add(ClientSecretHeaderKey, *c.clientSecret)
+	req.Header.Add(clientIDHeaderKey, c.clientID)
+	req.Header.Add(clientSecretHeaderKey, c.clientSecret)
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
@@ -215,7 +210,10 @@ func (c *Client) request(ctx context.Context) (*Response, error) {
 	}
 	defer resp.Body.Close()
 
-	bytes, _ := io.ReadAll(resp.Body)
+	bytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
 	var res *Response
 	if err = json.Unmarshal(bytes, &res); err != nil {
 		return nil, err
