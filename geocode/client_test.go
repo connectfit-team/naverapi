@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -25,7 +25,7 @@ var (
 )
 
 var (
-	normalResp = Response{
+	normalResp = &Response{
 		Status: "OK",
 		Meta:   Meta{TotalCount: 1, Page: 1, Count: 1},
 		Addresses: []Address{
@@ -44,10 +44,10 @@ var (
 			},
 		},
 	}
-	emptyResp = Response{
+	emptyResp = &Response{
 		Status: "OK",
 	}
-	engResp = Response{
+	engResp = &Response{
 		Status: "OK",
 		Meta:   Meta{TotalCount: 1, Page: 1, Count: 1},
 		Addresses: []Address{
@@ -66,7 +66,7 @@ var (
 			},
 		},
 	}
-	coordinateResp = Response{
+	coordinateResp = &Response{
 		Status: "OK",
 		Meta:   Meta{TotalCount: 1, Page: 1, Count: 1},
 		Addresses: []Address{
@@ -107,8 +107,8 @@ func TestClient_Query_Valid(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected nil but got : %v", err)
 	}
-	if !reflect.DeepEqual(*res, normalResp) {
-		t.Error("Not expected response")
+	if diff := cmp.Diff(res, normalResp); diff != "" {
+		t.Errorf("Not expected response: %s", diff)
 	}
 }
 
@@ -131,8 +131,8 @@ func TestClient_Query_Invalid(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected nil but got : %v", err)
 	}
-	if !reflect.DeepEqual(*res, emptyResp) {
-		t.Error("Not expected response")
+	if diff := cmp.Diff(res, emptyResp); diff != "" {
+		t.Errorf("Not expected response: %s", diff)
 	}
 }
 
@@ -159,13 +159,12 @@ func TestClient_Coordinate(t *testing.T) {
 			t.Errorf("encoding the response body shouldn't fail but got: %v", err)
 		}
 	})
-	res, err := client.Coordinate(lon, lat).
-		Query(context.Background(), validAddr)
+	res, err := client.Query(context.Background(), validAddr, WithCoordinate(lon, lat))
 	if err != nil {
 		t.Errorf("Expected nil but got : %v", err)
 	}
-	if !reflect.DeepEqual(*res, coordinateResp) {
-		t.Error("Not expected response")
+	if diff := cmp.Diff(res, coordinateResp); diff != "" {
+		t.Errorf("Not expected response: %s", diff)
 	}
 }
 
@@ -190,13 +189,12 @@ func TestClient_Language(t *testing.T) {
 			t.Errorf("encoding the response body shouldn't fail but got: %v", err)
 		}
 	})
-	res, err := client.Language(LanguageEng).
-		Query(context.Background(), validAddr)
+	res, err := client.Query(context.Background(), validAddr, WithLanguage(LanguageEng))
 	if err != nil {
 		t.Errorf("Expected nil but got : %v", err)
 	}
-	if !reflect.DeepEqual(*res, engResp) {
-		t.Error("Not expected response")
+	if diff := cmp.Diff(res, engResp); diff != "" {
+		t.Errorf("Not expected response: %s", diff)
 	}
 }
 
@@ -221,13 +219,12 @@ func TestClient_HCode(t *testing.T) {
 			t.Errorf("encoding the response body shouldn't fail but got: %v", err)
 		}
 	})
-	res, err := client.HCode(hCodes...).
-		Query(context.Background(), validAddr)
+	res, err := client.Query(context.Background(), validAddr, WithHCode(hCodes...))
 	if err != nil {
 		t.Errorf("Expected nil but got : %v", err)
 	}
-	if !reflect.DeepEqual(*res, normalResp) {
-		t.Error("Not expected response")
+	if diff := cmp.Diff(res, normalResp); diff != "" {
+		t.Errorf("Not expected response: %s", diff)
 	}
 }
 
@@ -252,13 +249,12 @@ func TestClient_Page(t *testing.T) {
 			t.Errorf("encoding the response body shouldn't fail but got: %v", err)
 		}
 	})
-	res, err := client.Page(pageVal).
-		Query(context.Background(), validAddr)
+	res, err := client.Query(context.Background(), validAddr, WithPage(pageVal))
 	if err != nil {
 		t.Errorf("Expected nil but got : %v", err)
 	}
-	if !reflect.DeepEqual(*res, emptyResp) {
-		t.Error("Not expected response")
+	if diff := cmp.Diff(res, emptyResp); diff != "" {
+		t.Errorf("Not expected response: %s", diff)
 	}
 }
 
@@ -283,76 +279,89 @@ func TestClient_Count(t *testing.T) {
 			t.Errorf("encoding the response body shouldn't fail but got: %v", err)
 		}
 	})
-	res, err := client.Count(countVal).
-		Query(context.Background(), validAddr)
+	res, err := client.Query(context.Background(), validAddr, WithCount(countVal))
 	if err != nil {
 		t.Errorf("Expected nil but got : %v", err)
 	}
-	if !reflect.DeepEqual(*res, emptyResp) {
-		t.Error("Not expected response")
+	if diff := cmp.Diff(res, emptyResp); diff != "" {
+		t.Errorf("Not expected response: %s", diff)
 	}
 }
 
 func checkCount(t *testing.T, r *http.Request, v int) (equal bool) {
-	vs := fmt.Sprintf("%d", v)
-	if !cmp.Equal(vs, r.URL.Query().Get(count)) {
-		t.Errorf("Expected count %s but got %s", vs, r.URL.Query().Get(count))
+	expect := strconv.Itoa(v)
+	actual := r.URL.Query().Get(countConst)
+	equal = expect == actual
+	if !equal {
+		t.Errorf("Expected count %s but got %s", expect, actual)
 	}
-	return cmp.Equal(vs, r.URL.Query().Get(count))
+	return equal
 }
 
 func checkPage(t *testing.T, r *http.Request, v int) (equal bool) {
-	vs := fmt.Sprintf("%d", v)
-	if !cmp.Equal(vs, r.URL.Query().Get(page)) {
-		t.Errorf("Expected page %s but got %s", vs, r.URL.Query().Get(page))
+	expect := strconv.Itoa(v)
+	actual := r.URL.Query().Get(pageConst)
+	equal = expect == actual
+	if !equal {
+		t.Errorf("Expected page %s but got %s", expect, actual)
 	}
-	return cmp.Equal(vs, r.URL.Query().Get(page))
+	return equal
 }
 
 func checkCode(t *testing.T, r *http.Request, v string) (equal bool) {
-	if !cmp.Equal(v, r.URL.Query().Get(filter)) {
-		t.Fatalf("Expected code %s but got %s", v, r.URL.Query().Get(filter))
+	actual := r.URL.Query().Get(filterConst)
+	equal = v == actual
+	if !equal {
+		t.Fatalf("Expected code %s but got %s", v, actual)
 	}
-	return cmp.Equal(v, r.URL.Query().Get(filter))
+	return equal
 }
 
 func checkLanguage(t *testing.T, r *http.Request, v string) (equal bool) {
-	if !cmp.Equal(v, r.URL.Query().Get(language)) {
-		t.Errorf("Expected language %s but got %s", v, r.URL.Query().Get(language))
+	actual := r.URL.Query().Get(languageConst)
+	equal = v == actual
+	if !equal {
+		t.Errorf("Expected language %s but got %s", v, actual)
 	}
-	return cmp.Equal(v, r.URL.Query().Get(language))
+	return equal
 }
 
 func checkCoordinate(t *testing.T, r *http.Request, v string) (equal bool) {
-	if !cmp.Equal(v, r.URL.Query().Get(coordinate)) {
-		t.Errorf("Expected coordinate %s but got %s", v, r.URL.Query().Get(coordinate))
+	actual := r.URL.Query().Get(coordinateConst)
+	equal = v == actual
+	if !equal {
+		t.Errorf("Expected coordinate %s but got %s", v, actual)
 	}
-	return cmp.Equal(v, r.URL.Query().Get(coordinate))
+	return equal
 }
 
 func checkQuery(t *testing.T, r *http.Request, v string) (equal bool) {
-	if !cmp.Equal(v, r.URL.Query().Get(query)) {
-		t.Errorf("Expected query %s but got %s", v, r.URL.Query().Get(query))
+	actual := r.URL.Query().Get(queryConst)
+	equal = v == actual
+	if !equal {
+		t.Errorf("Expected query %s but got %s", v, actual)
 	}
-	return cmp.Equal(v, r.URL.Query().Get(query))
+	return equal
 }
 
 func checkHeaderID(t *testing.T, r *http.Request) {
-	if !cmp.Equal(wantID, r.Header.Get(clientIDHeaderKey)) {
+	id := r.Header.Get(clientIDHeaderKey)
+	if wantID != id {
 		t.Errorf("Expected Header %s=%s but got %s=%s",
-			clientIDHeaderKey, wantID, clientIDHeaderKey, r.Header.Get(clientIDHeaderKey))
+			clientIDHeaderKey, wantID, clientIDHeaderKey, id)
 	}
 }
 
 func checkHeaderSecret(t *testing.T, r *http.Request) {
-	if !cmp.Equal(wantSecret, r.Header.Get(clientSecretHeaderKey)) {
+	secret := r.Header.Get(clientSecretHeaderKey)
+	if wantSecret != secret {
 		t.Errorf("Expected Header %s=%s but got %s=%s",
-			clientSecretHeaderKey, wantSecret, clientSecretHeaderKey, r.Header.Get(clientSecretHeaderKey))
+			clientSecretHeaderKey, wantSecret, clientSecretHeaderKey, secret)
 	}
 }
 
 func checkMethod(t *testing.T, r *http.Request) {
-	if !cmp.Equal(http.MethodGet, r.Method) {
+	if http.MethodGet != r.Method {
 		t.Errorf("Expected Method %s but got %s", http.MethodGet, r.Method)
 	}
 }
