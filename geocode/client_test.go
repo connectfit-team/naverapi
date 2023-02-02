@@ -148,14 +148,10 @@ func TestClient_Coordinate(t *testing.T) {
 		checkHeaderSecret(t, r)
 
 		checkQuery(t, r, validAddr)
-
-		resp := coordinateResp
-		if !checkCoordinate(t, r, fmt.Sprintf("%f,%f", lon, lat)) {
-			resp = normalResp
-		}
+		checkCoordinate(t, r, fmt.Sprintf("%f,%f", lon, lat))
 
 		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(resp); err != nil {
+		if err := json.NewEncoder(w).Encode(coordinateResp); err != nil {
 			t.Errorf("encoding the response body shouldn't fail but got: %v", err)
 		}
 	})
@@ -178,14 +174,10 @@ func TestClient_Language(t *testing.T) {
 		checkHeaderSecret(t, r)
 
 		checkQuery(t, r, validAddr)
-
-		resp := engResp
-		if !checkLanguage(t, r, string(LanguageEng)) {
-			resp = normalResp
-		}
+		checkLanguage(t, r, string(LanguageEng))
 
 		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(resp); err != nil {
+		if err := json.NewEncoder(w).Encode(engResp); err != nil {
 			t.Errorf("encoding the response body shouldn't fail but got: %v", err)
 		}
 	})
@@ -210,12 +202,10 @@ func TestClient_HCode(t *testing.T) {
 		checkHeaderSecret(t, r)
 
 		checkQuery(t, r, validAddr)
-		resp := normalResp
-		if !checkCode(t, r, fmt.Sprintf("%s@%s", string(hCode), strings.Join(hCodes, ";"))) {
-			resp = emptyResp
-		}
+		checkCode(t, r, fmt.Sprintf("%s@%s", string(hCode), strings.Join(hCodes, ";")))
+
 		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(resp); err != nil {
+		if err := json.NewEncoder(w).Encode(normalResp); err != nil {
 			t.Errorf("encoding the response body shouldn't fail but got: %v", err)
 		}
 	})
@@ -240,12 +230,10 @@ func TestClient_Page(t *testing.T) {
 		checkHeaderSecret(t, r)
 
 		checkQuery(t, r, validAddr)
-		resp := normalResp
-		if checkPage(t, r, pageVal) {
-			resp = emptyResp
-		}
+		checkPage(t, r, pageVal)
+
 		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(resp); err != nil {
+		if err := json.NewEncoder(w).Encode(emptyResp); err != nil {
 			t.Errorf("encoding the response body shouldn't fail but got: %v", err)
 		}
 	})
@@ -270,12 +258,10 @@ func TestClient_Count(t *testing.T) {
 		checkHeaderSecret(t, r)
 
 		checkQuery(t, r, validAddr)
-		resp := normalResp
-		if checkCount(t, r, countVal) {
-			resp = emptyResp
-		}
+		checkCount(t, r, countVal)
+
 		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(resp); err != nil {
+		if err := json.NewEncoder(w).Encode(emptyResp); err != nil {
 			t.Errorf("encoding the response body shouldn't fail but got: %v", err)
 		}
 	})
