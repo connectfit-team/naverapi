@@ -96,25 +96,23 @@ func (c *Client) Query(ctx context.Context, v string) (*Response, error) {
 // Coordinate set coordinates to be the center of the search.
 // If set, computes the distance from the `Query()` value to the coordinates.
 func (c *Client) Coordinate(lon, lat float64) *Client {
-	if c.data != nil {
-		c.data.Set(coordinate, fmt.Sprintf("%f,%f", lon, lat))
-		return c
+	cc := c.clone()
+	if cc.data == nil {
+		cc.data = url.Values{}
 	}
-	b := url.Values{}
-	b.Set(coordinate, fmt.Sprintf("%f,%f", lon, lat))
-	return c.copy(b)
+	cc.data.Set(coordinate, fmt.Sprintf("%f,%f", lon, lat))
+	return cc
 }
 
 // Language set language query option.
 // default : "kor"
 func (c *Client) Language(v Lang) *Client {
-	if c.data != nil {
-		c.data.Set(language, string(v))
-		return c
+	cc := c.clone()
+	if cc.data == nil {
+		cc.data = url.Values{}
 	}
-	b := url.Values{}
-	b.Set(language, string(v))
-	return c.copy(b)
+	cc.data.Set(language, string(v))
+	return cc
 }
 
 // HCode set filter condition.
@@ -124,21 +122,22 @@ func (c *Client) Language(v Lang) *Client {
 //
 // client.HCode("value1").HCode("value2)
 func (c *Client) HCode(v string) *Client {
-	if c.data != nil {
-		f := c.data.Get(filter)
+	cc := c.clone()
+	if cc.data == nil {
+		cc.data = url.Values{}
+		cc.data.Set(filter, fmt.Sprintf("%s@%s", hCode, v))
+	} else {
+		f := cc.data.Get(filter)
 		// 필터를 설정한 적이 없으면 설정하고 리턴
 		// 또는 필터를 설정한 적이 있으나 설정하려는 필터와 기존 필터가 다른 경우 기존 필터 제거하고 현재 필터 설정
 		if f == "" || !strings.HasPrefix(f, string(hCode)) {
-			c.data.Set(filter, fmt.Sprintf("%s@%s", hCode, v))
+			cc.data.Set(filter, fmt.Sprintf("%s@%s", hCode, v))
 		} else {
 			// 기존 필터에 이어서 설정
-			c.data.Set(filter, fmt.Sprintf("%s;%s", f, v))
+			cc.data.Set(filter, fmt.Sprintf("%s;%s", f, v))
 		}
-		return c
 	}
-	b := url.Values{}
-	b.Set(filter, fmt.Sprintf("%s@%s", hCode, v))
-	return c.copy(b)
+	return cc
 }
 
 // BCode set filter condition.
@@ -148,55 +147,54 @@ func (c *Client) HCode(v string) *Client {
 //
 // client.BCode("value1").BCode("value2)
 func (c *Client) BCode(v string) *Client {
-	if c.data != nil {
-		f := c.data.Get(filter)
+	cc := c.clone()
+	if cc.data == nil {
+		cc.data = url.Values{}
+		cc.data.Set(filter, fmt.Sprintf("%s@%s", bCode, v))
+	} else {
+		f := cc.data.Get(filter)
 		// 필터를 설정한 적이 없으면 설정하고 리턴
 		// 또는 필터를 설정한 적이 있으나 설정하려는 필터와 기존 필터가 다른 경우 기존 필터 제거하고 현재 필터 설정
 		if f == "" || !strings.HasPrefix(f, string(bCode)) {
-			c.data.Set(filter, fmt.Sprintf("%s@%s", bCode, v))
+			cc.data.Set(filter, fmt.Sprintf("%s@%s", bCode, v))
 		} else {
 			// 기존 필터에 이어서 설정
-			c.data.Set(filter, fmt.Sprintf("%s;%s", f, v))
+			cc.data.Set(filter, fmt.Sprintf("%s;%s", f, v))
 		}
-		return c
 	}
-	b := url.Values{}
-	b.Set(filter, fmt.Sprintf("%s@%s", bCode, v))
-	return c.copy(b)
+	return cc
 }
 
 // Page decide page you want.
 // default	: 1
 func (c *Client) Page(v int) *Client {
-	if c.data != nil {
-		c.data.Set(page, strconv.Itoa(v))
-		return c
+	cc := c.clone()
+	if cc.data == nil {
+		cc.data = url.Values{}
 	}
-	b := url.Values{}
-	b.Set(page, strconv.Itoa(v))
-	return c.copy(b)
+	cc.data.Set(page, strconv.Itoa(v))
+	return cc
 }
 
 // Count decide page unit.
 // default 	: 10
 // range 	: 1 ~ 100
 func (c *Client) Count(v int) *Client {
-	if c.data != nil {
-		c.data.Set(count, strconv.Itoa(v))
-		return c
+	cc := c.clone()
+	if cc.data == nil {
+		cc.data = url.Values{}
 	}
-	b := url.Values{}
-	b.Set(count, strconv.Itoa(v))
-	return c.copy(b)
+	cc.data.Set(count, strconv.Itoa(v))
+	return cc
 }
 
-func (c *Client) copy(b url.Values) *Client {
+func (c *Client) clone() *Client {
 	return &Client{
 		HTTPClient:   c.HTTPClient,
 		clientID:     c.clientID,
 		clientSecret: c.clientSecret,
 		BaseURL:      c.BaseURL,
-		data:         b,
+		data:         c.data,
 	}
 }
 
