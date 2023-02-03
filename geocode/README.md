@@ -41,9 +41,8 @@ func main() {
 	}
 	
 	// find address as english
-	res, err = client.
-		Language(geocode.Eng).
-		Query(ctx, jibunAddress)
+	res, err = client.Query(ctx, jibunAddress, 
+		geocode.WithLanguage(geocode.LanguageEng))
 	if err != nil {
 		panic(err)
 	}
