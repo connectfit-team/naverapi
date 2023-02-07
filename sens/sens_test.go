@@ -77,7 +77,7 @@ func TestSENSClient_SendSMS(t *testing.T) {
 	}
 }
 
-func TestSENSClient_CreateMail_ShouldFailIfWrongResponseStatusCode(t *testing.T) {
+func TestSENSClient_SendSMS_ShouldFailIfWrongResponseStatusCode(t *testing.T) {
 	client, mux, teardown := setupTestSENSClient()
 	defer teardown()
 
@@ -123,7 +123,7 @@ func TestSENSClient_CreateMail_ShouldFailIfWrongResponseStatusCode(t *testing.T)
 	}
 }
 
-func TestSENSClient_CreateMail_ShouldFailIfMalformedResponseBody(t *testing.T) {
+func TestSENSClient_SendSMS_ShouldFailIfMalformedResponseBody(t *testing.T) {
 	client, mux, teardown := setupTestSENSClient()
 	defer teardown()
 

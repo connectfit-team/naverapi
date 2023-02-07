@@ -2,56 +2,78 @@ package mailer_test
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
 	"net/http"
 	"testing"
 
-	"github.com/connectfit-team/naverapi/internal/testhelper"
 	"github.com/connectfit-team/naverapi/mailer"
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestMailServic_CreateMail(t *testing.T) {
+const validCreateMailResponse = `
+	{
+		"requestId": "test-request-id",
+		"count": 1
+	}
+`
+
+const validCreateFilesResponse = `
+	{
+		"tempRequestId": "test-temp-request-id",
+		"files": [
+			{
+				"fileName": "test-filename-1",
+				"fileSize": 42,
+				"fileId": "test-file-id-1"
+			},
+			{
+				"fileName": "test-filename-2",
+				"fileSize": 1337,
+				"fileId": "test-file-id-2"
+			}
+		]
+	}
+`
+
+var testCreateMailRequest = mailer.CreateMailRequest{
+	SenderAddress: "test-sender-address",
+	SenderName:    "test-sender-name",
+	Title:         "test-title",
+	Body:          "test-body",
+	Recipients: []*mailer.Recipient{
+		{
+			Address:    "test-address",
+			Name:       "test-name",
+			Type:       "test-type",
+			Parameters: []string{"test-parameter-1", "test-parameter-2"},
+		},
+	},
+	AttachFileIDs: []string{"test-file-id-1", "test-file-id-2"},
+}
+
+var testFiles = []mailer.File{
+	{
+		Name:    "test-name-1",
+		Content: []byte("test-content-1"),
+	},
+	{
+		Name:    "test-name-2",
+		Content: []byte("test-content-2"),
+	},
+}
+
+func TestCloudOutboundMailerClient_CreateMail(t *testing.T) {
 	client, mux, teardown := setupTestCloudOutboundMailerClient()
 	defer teardown()
 
 	mux.HandleFunc(mailer.EndpointMails, func(w http.ResponseWriter, r *http.Request) {
-		testhelper.TestRequestMethod(t, r, http.MethodPost)
-
-		testhelper.TestRequestHeader(t, r, "X-Ncp-Apigw-Timestamp", "856915200000")
-		testhelper.TestRequestHeader(t, r, "X-Ncp-Iam-Access-Key", "test-access-key")
-		testhelper.TestRequestHeader(t, r, "X-Ncp-Apigw-Signature-V2", "F1YxxwEjDRZmNLxqqDFz53OpbvLrMCqEsv9tLxoBcWE=")
-		testhelper.TestRequestHeader(t, r, "Content-Type", "application/json")
-
-		testhelper.TestRequestBody(t, r, `{"senderAddress":"test-sender-address","senderName":"test-sender-name","title":"test-title","body":"test-body","recipients":[{"address":"test-address","name":"test-name","type":"test-type","parameters":["test-parameter-1","test-parameter-2"]}],"attachFileIds":["test-file-id-1","test-file-id-2"]}`)
+		checkCreateMailRequest(t, r)
 
 		w.WriteHeader(http.StatusCreated)
-		respBody := mailer.CreateMailResponse{
-			RequestID: "test-request-id",
-			Count:     1,
-		}
-		err := json.NewEncoder(w).Encode(respBody)
-		if err != nil {
-			t.Errorf("encoding the response body shouldn't fail but got: %v", err)
-		}
+		fmt.Fprint(w, validCreateMailResponse)
 	})
 
-	req := mailer.CreateMailRequest{
-		SenderAddress: "test-sender-address",
-		SenderName:    "test-sender-name",
-		Title:         "test-title",
-		Body:          "test-body",
-		Recipients: []*mailer.Recipient{
-			{
-				Address:    "test-address",
-				Name:       "test-name",
-				Type:       "test-type",
-				Parameters: []string{"test-parameter-1", "test-parameter-2"},
-			},
-		},
-		AttachFileIDs: []string{"test-file-id-1", "test-file-id-2"},
-	}
-	got, err := client.CreateMail(context.Background(), req)
+	got, err := client.CreateMail(context.Background(), testCreateMailRequest)
 	if err != nil {
 		t.Fatalf("createMail request was given a valid request but failed: %v", err)
 	}
@@ -70,34 +92,12 @@ func TestCloudOutboundMailerClient_CreateMail_ShouldFailIfWrongResponseStatusCod
 	defer teardown()
 
 	mux.HandleFunc(mailer.EndpointMails, func(w http.ResponseWriter, r *http.Request) {
-		testhelper.TestRequestMethod(t, r, http.MethodPost)
-
-		testhelper.TestRequestHeader(t, r, "X-Ncp-Apigw-Timestamp", "856915200000")
-		testhelper.TestRequestHeader(t, r, "X-Ncp-Iam-Access-Key", "test-access-key")
-		testhelper.TestRequestHeader(t, r, "X-Ncp-Apigw-Signature-V2", "F1YxxwEjDRZmNLxqqDFz53OpbvLrMCqEsv9tLxoBcWE=")
-		testhelper.TestRequestHeader(t, r, "Content-Type", "application/json")
-
-		testhelper.TestRequestBody(t, r, `{"senderAddress":"test-sender-address","senderName":"test-sender-name","title":"test-title","body":"test-body","recipients":[{"address":"test-address","name":"test-name","type":"test-type","parameters":["test-parameter-1","test-parameter-2"]}],"attachFileIds":["test-file-id-1","test-file-id-2"]}`)
+		checkCreateMailRequest(t, r)
 
 		w.WriteHeader(http.StatusBadRequest)
 	})
 
-	req := mailer.CreateMailRequest{
-		SenderAddress: "test-sender-address",
-		SenderName:    "test-sender-name",
-		Title:         "test-title",
-		Body:          "test-body",
-		Recipients: []*mailer.Recipient{
-			{
-				Address:    "test-address",
-				Name:       "test-name",
-				Type:       "test-type",
-				Parameters: []string{"test-parameter-1", "test-parameter-2"},
-			},
-		},
-		AttachFileIDs: []string{"test-file-id-1", "test-file-id-2"},
-	}
-	_, err := client.CreateMail(context.Background(), req)
+	_, err := client.CreateMail(context.Background(), testCreateMailRequest)
 	if err == nil {
 		t.Fatalf("createMail request should fail when the server send status code %d", http.StatusBadRequest)
 	}
@@ -108,35 +108,13 @@ func TestCloudOutboundMailerClient_CreateMail_ShouldFailIfMalformedResponseBody(
 	defer teardown()
 
 	mux.HandleFunc(mailer.EndpointMails, func(w http.ResponseWriter, r *http.Request) {
-		testhelper.TestRequestMethod(t, r, http.MethodPost)
-
-		testhelper.TestRequestHeader(t, r, "X-Ncp-Apigw-Timestamp", "856915200000")
-		testhelper.TestRequestHeader(t, r, "X-Ncp-Iam-Access-Key", "test-access-key")
-		testhelper.TestRequestHeader(t, r, "X-Ncp-Apigw-Signature-V2", "F1YxxwEjDRZmNLxqqDFz53OpbvLrMCqEsv9tLxoBcWE=")
-		testhelper.TestRequestHeader(t, r, "Content-Type", "application/json")
-
-		testhelper.TestRequestBody(t, r, `{"senderAddress":"test-sender-address","senderName":"test-sender-name","title":"test-title","body":"test-body","recipients":[{"address":"test-address","name":"test-name","type":"test-type","parameters":["test-parameter-1","test-parameter-2"]}],"attachFileIds":["test-file-id-1","test-file-id-2"]}`)
+		checkCreateMailRequest(t, r)
 
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("malformed response body :)"))
 	})
 
-	req := mailer.CreateMailRequest{
-		SenderAddress: "test-sender-address",
-		SenderName:    "test-sender-name",
-		Title:         "test-title",
-		Body:          "test-body",
-		Recipients: []*mailer.Recipient{
-			{
-				Address:    "test-address",
-				Name:       "test-name",
-				Type:       "test-type",
-				Parameters: []string{"test-parameter-1", "test-parameter-2"},
-			},
-		},
-		AttachFileIDs: []string{"test-file-id-1", "test-file-id-2"},
-	}
-	_, err := client.CreateMail(context.Background(), req)
+	_, err := client.CreateMail(context.Background(), testCreateMailRequest)
 	if err == nil {
 		t.Fatalf("createMail request should fail when the server send malformed response body")
 	}
@@ -147,47 +125,13 @@ func TestCloudOutboundMailerClient_CreateFiles(t *testing.T) {
 	defer teardown()
 
 	mux.HandleFunc(mailer.EndpointFiles, func(w http.ResponseWriter, r *http.Request) {
-		testhelper.TestRequestMethod(t, r, http.MethodPost)
-
-		testhelper.TestRequestHeader(t, r, "X-Ncp-Apigw-Timestamp", "856915200000")
-		testhelper.TestRequestHeader(t, r, "X-Ncp-Iam-Access-Key", "test-access-key")
-		testhelper.TestRequestHeader(t, r, "X-Ncp-Apigw-Signature-V2", "q1JhbYivx0lU//wBoOyh+yn/y7+Lg9Ez/Xj6FDzxap4=")
-
-		testhelper.TestRequestFormFiles(t, r, "fileList", []string{"test-content-1", "test-content-2"})
+		checkCreateFilesRequest(t, r)
 
 		w.WriteHeader(http.StatusCreated)
-		respBody := mailer.CreateFileResponse{
-			TempRequestID: "test-temp-request-id",
-			Files: []*mailer.ResponseFileInfo{
-				{
-					FileName: "test-filename-1",
-					FileSize: 42,
-					FileID:   "test-file-id-1",
-				},
-				{
-					FileName: "test-filename-2",
-					FileSize: 1337,
-					FileID:   "test-file-id-2",
-				},
-			},
-		}
-		err := json.NewEncoder(w).Encode(respBody)
-		if err != nil {
-			t.Errorf("encoding the response body shouldn't fail but got: %v", err)
-		}
+		fmt.Fprint(w, validCreateFilesResponse)
 	})
 
-	files := []mailer.File{
-		{
-			Name:    "test-name-1",
-			Content: []byte("test-content-1"),
-		},
-		{
-			Name:    "test-name-2",
-			Content: []byte("test-content-2"),
-		},
-	}
-	got, err := client.CreateFiles(context.Background(), files)
+	got, err := client.CreateFiles(context.Background(), testFiles)
 	if err != nil {
 		t.Fatalf("createFile request was given a valid request but failed: %v", err)
 	}
@@ -217,28 +161,12 @@ func TestCloudOutboundMailerClient_CreateFile_ShouldFailIfWrongResponseStatusCod
 	defer teardown()
 
 	mux.HandleFunc(mailer.EndpointFiles, func(w http.ResponseWriter, r *http.Request) {
-		testhelper.TestRequestMethod(t, r, http.MethodPost)
-
-		testhelper.TestRequestHeader(t, r, "X-Ncp-Apigw-Timestamp", "856915200000")
-		testhelper.TestRequestHeader(t, r, "X-Ncp-Iam-Access-Key", "test-access-key")
-		testhelper.TestRequestHeader(t, r, "X-Ncp-Apigw-Signature-V2", "q1JhbYivx0lU//wBoOyh+yn/y7+Lg9Ez/Xj6FDzxap4=")
-
-		testhelper.TestRequestFormFiles(t, r, "fileList", []string{"test-content-1", "test-content-2"})
+		checkCreateFilesRequest(t, r)
 
 		w.WriteHeader(http.StatusBadRequest)
 	})
 
-	files := []mailer.File{
-		{
-			Name:    "test-name-1",
-			Content: []byte("test-content-1"),
-		},
-		{
-			Name:    "test-name-2",
-			Content: []byte("test-content-2"),
-		},
-	}
-	_, err := client.CreateFiles(context.Background(), files)
+	_, err := client.CreateFiles(context.Background(), testFiles)
 	if err == nil {
 		t.Fatalf("createFile request should fail when the server send malformed response body")
 	}
@@ -249,29 +177,13 @@ func TestCloudOutboundMailerClient_CreateFiles_ShouldFailIfMalformedResponseBody
 	defer teardown()
 
 	mux.HandleFunc(mailer.EndpointFiles, func(w http.ResponseWriter, r *http.Request) {
-		testhelper.TestRequestMethod(t, r, http.MethodPost)
-
-		testhelper.TestRequestHeader(t, r, "X-Ncp-Apigw-Timestamp", "856915200000")
-		testhelper.TestRequestHeader(t, r, "X-Ncp-Iam-Access-Key", "test-access-key")
-		testhelper.TestRequestHeader(t, r, "X-Ncp-Apigw-Signature-V2", "q1JhbYivx0lU//wBoOyh+yn/y7+Lg9Ez/Xj6FDzxap4=")
-
-		testhelper.TestRequestFormFiles(t, r, "fileList", []string{"test-content-1", "test-content-2"})
+		checkCreateFilesRequest(t, r)
 
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte("malformed response body :)"))
 	})
 
-	files := []mailer.File{
-		{
-			Name:    "test-name-1",
-			Content: []byte("test-content-1"),
-		},
-		{
-			Name:    "test-name-2",
-			Content: []byte("test-content-2"),
-		},
-	}
-	_, err := client.CreateFiles(context.Background(), files)
+	_, err := client.CreateFiles(context.Background(), testFiles)
 	if err == nil {
 		t.Fatalf("createFile request should fail when the server send status code %d", http.StatusBadRequest)
 	}
