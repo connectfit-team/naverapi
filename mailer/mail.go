@@ -79,11 +79,19 @@ type CreateMailRequest struct {
 	AttachFileIDs []string     `json:"attachFileIds,omitempty"`
 }
 
+type RecipientType string
+
+const (
+	RecipientTypeDefault         RecipientType = "R" // 수신자
+	RecipientTypeCarbonCopy      RecipientType = "C" // 참조자
+	RecipientTypeBlindCarbonCopy RecipientType = "B" // 숨은 참조자
+)
+
 type Recipient struct {
-	Address    string   `json:"address"`
-	Name       string   `json:"name"`
-	Type       string   `json:"type"` //_R:수신자, C:참조자, B:숨은 참조자
-	Parameters []string `json:"parameters,omitempty"`
+	Address    string        `json:"address"`
+	Name       string        `json:"name"`
+	Type       RecipientType `json:"type"`
+	Parameters []string      `json:"parameters,omitempty"`
 }
 
 // CreateMailResponse represents the response sent by the Naver Cloud Outbound
