@@ -20,7 +20,7 @@ func TestSENSClient_SendSMS(t *testing.T) {
 
 		testhelper.TestRequestHeader(t, r, "X-Ncp-Apigw-Timestamp", "856915200000")
 		testhelper.TestRequestHeader(t, r, "X-Ncp-Iam-Access-Key", "test-access-key")
-		testhelper.TestRequestHeader(t, r, "X-Ncp-Apigw-Signature-V2", "kvkrNBTLmAR0EjpGH9ug2I6NYO5SeKp/l4A1BO+idFU=")
+		testhelper.TestRequestHeader(t, r, "X-Ncp-Apigw-Signature-V2", "fNdhE7DMQ3QT2Ev3GxZxSpzg3vJmHNBMjAPG78IqBX8=")
 		testhelper.TestRequestHeader(t, r, "Content-Type", "application/json")
 
 		testhelper.TestRequestBody(t, r, `{"type":"LMS","contentType":"AD","countryCode":"82","from":"test-from","subject":"test-subject","content":"test-content","messages":[{"to":"test-to-1","subject":"test-subject-1","content":"test-content-1"},{"to":"test-to-2","subject":"test-subject-2","content":"test-content-2"}],"reserveTime":"test-reserve-time","reserveTimeZone":"test-reserve-time-zone","scheduleCode":"test-schedule-code"}`)
@@ -86,7 +86,7 @@ func TestSENSClient_SendSMS_ShouldFailIfWrongResponseStatusCode(t *testing.T) {
 
 		testhelper.TestRequestHeader(t, r, "X-Ncp-Apigw-Timestamp", "856915200000")
 		testhelper.TestRequestHeader(t, r, "X-Ncp-Iam-Access-Key", "test-access-key")
-		testhelper.TestRequestHeader(t, r, "X-Ncp-Apigw-Signature-V2", "kvkrNBTLmAR0EjpGH9ug2I6NYO5SeKp/l4A1BO+idFU=")
+		testhelper.TestRequestHeader(t, r, "X-Ncp-Apigw-Signature-V2", "fNdhE7DMQ3QT2Ev3GxZxSpzg3vJmHNBMjAPG78IqBX8=")
 		testhelper.TestRequestHeader(t, r, "Content-Type", "application/json")
 
 		testhelper.TestRequestBody(t, r, `{"type":"LMS","contentType":"AD","countryCode":"82","from":"test-from","subject":"test-subject","content":"test-content","messages":[{"to":"test-to-1","subject":"test-subject-1","content":"test-content-1"},{"to":"test-to-2","subject":"test-subject-2","content":"test-content-2"}],"reserveTime":"test-reserve-time","reserveTimeZone":"test-reserve-time-zone","scheduleCode":"test-schedule-code"}`)
@@ -132,7 +132,7 @@ func TestSENSClient_SendSMS_ShouldFailIfMalformedResponseBody(t *testing.T) {
 
 		testhelper.TestRequestHeader(t, r, "X-Ncp-Apigw-Timestamp", "856915200000")
 		testhelper.TestRequestHeader(t, r, "X-Ncp-Iam-Access-Key", "test-access-key")
-		testhelper.TestRequestHeader(t, r, "X-Ncp-Apigw-Signature-V2", "kvkrNBTLmAR0EjpGH9ug2I6NYO5SeKp/l4A1BO+idFU=")
+		testhelper.TestRequestHeader(t, r, "X-Ncp-Apigw-Signature-V2", "fNdhE7DMQ3QT2Ev3GxZxSpzg3vJmHNBMjAPG78IqBX8=")
 		testhelper.TestRequestHeader(t, r, "Content-Type", "application/json")
 
 		testhelper.TestRequestBody(t, r, `{"type":"LMS","contentType":"AD","countryCode":"82","from":"test-from","subject":"test-subject","content":"test-content","messages":[{"to":"test-to-1","subject":"test-subject-1","content":"test-content-1"},{"to":"test-to-2","subject":"test-subject-2","content":"test-content-2"}],"reserveTime":"test-reserve-time","reserveTimeZone":"test-reserve-time-zone","scheduleCode":"test-schedule-code"}`)

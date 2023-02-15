@@ -16,7 +16,7 @@ const (
 	SENSDefaultBaseURL = "https://sens.apigw.ntruss.com"
 
 	EndpointSMSAPI   = "/sms/v2"
-	EndpointMessages = EndpointSMSAPI + "services/ncp:sms:kr:273248310490:sms_service/messages"
+	EndpointMessages = EndpointSMSAPI + "/services/ncp:sms:kr:273248310490:sms_service/messages"
 )
 
 var (
